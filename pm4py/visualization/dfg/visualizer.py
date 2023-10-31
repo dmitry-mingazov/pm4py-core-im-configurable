@@ -16,14 +16,12 @@
 '''
 from pm4py.visualization.common import gview
 from pm4py.visualization.common import save as gsave
-from pm4py.visualization.dfg.variants import frequency, performance
+from pm4py.visualization.dfg.variants import frequency, performance, cost
 from enum import Enum
 from pm4py.util import exec_utils
 from copy import deepcopy
 from pm4py.visualization.common.gview import serialize, serialize_dot
-from typing import Optional, Dict, Any, Union, Tuple
-from pm4py.objects.log.obj import EventLog, EventStream
-from pm4py.util import typing
+from typing import Optional, Dict, Any, Tuple
 import graphviz
 from pm4py.objects.log.obj import EventLog
 
@@ -31,6 +29,7 @@ from pm4py.objects.log.obj import EventLog
 class Variants(Enum):
     FREQUENCY = frequency
     PERFORMANCE = performance
+    COST = cost
 
 
 DEFAULT_VARIANT = Variants.FREQUENCY
@@ -66,7 +65,7 @@ def apply(dfg0: Dict[Tuple[str, str], float], log: EventLog = None, activities_c
     return exec_utils.get_variant(variant).apply(dfg, log=log, activities_count=activities_count, soj_time=soj_time, parameters=parameters)
 
 
-def save(gviz, output_file_path):
+def save(gviz, output_file_path, parameters=None):
     """
     Save the diagram
 
@@ -77,10 +76,10 @@ def save(gviz, output_file_path):
     output_file_path
         Path where the GraphViz output should be saved
     """
-    gsave.save(gviz, output_file_path)
+    gsave.save(gviz, output_file_path, parameters=parameters)
 
 
-def view(gviz):
+def view(gviz, parameters=None):
     """
     View the diagram
 
@@ -89,10 +88,10 @@ def view(gviz):
     gviz
         GraphViz diagram
     """
-    return gview.view(gviz)
+    return gview.view(gviz, parameters=parameters)
 
 
-def matplotlib_view(gviz):
+def matplotlib_view(gviz, parameters=None):
     """
     Views the diagram using Matplotlib
 
@@ -102,4 +101,4 @@ def matplotlib_view(gviz):
         Graphviz
     """
 
-    return gview.matplotlib_view(gviz)
+    return gview.matplotlib_view(gviz, parameters=parameters)

@@ -14,14 +14,14 @@
     You should have received a copy of the GNU General Public License
     along with PM4Py.  If not, see <https://www.gnu.org/licenses/>.
 '''
-import pkgutil
+import importlib.util
 
 
 def apply(input_path, validation_path, parameters=None):
-    import lxml
-
-    if not pkgutil.find_loader("lxml"):
+    if not importlib.util.find_spec("lxml"):
         raise Exception("please install lxml in order to validate an XMLOCEL file.")
+
+    import lxml.etree
 
     if parameters is None:
         parameters = {}

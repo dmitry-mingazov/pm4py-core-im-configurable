@@ -14,8 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with PM4Py.  If not, see <https://www.gnu.org/licenses/>.
 '''
-import pkgutil
-
 import pandas as pd
 
 from pm4py.util import constants, xes_constants
@@ -228,7 +226,7 @@ def insert_case_service_waiting_time(log: pd.DataFrame, case_id_column=constants
     if start_timestamp_column is None:
         start_timestamp_column = timestamp_column
 
-    log[diff_start_end_column] = (log[timestamp_column] - log[start_timestamp_column]).astype("timedelta64[ms]")
+    log[diff_start_end_column] = (log[timestamp_column] - log[start_timestamp_column]).dt.total_seconds()
     service_times = log.groupby(case_id_column)[diff_start_end_column].sum().to_dict()
     log[service_time_column] = log[case_id_column].map(service_times)
 
@@ -256,10 +254,8 @@ def check_is_pandas_dataframe(log):
     boolean
         Is dataframe?
     """
-    if pkgutil.find_loader("pandas"):
-        import pandas as pd
-        return type(log) is pd.DataFrame
-    return False
+    import pandas as pd
+    return type(log) is pd.DataFrame
 
 
 def check_pandas_dataframe_columns(df, activity_key=None, case_id_key=None, timestamp_key=None):

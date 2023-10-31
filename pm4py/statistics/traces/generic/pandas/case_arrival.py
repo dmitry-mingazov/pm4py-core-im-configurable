@@ -21,7 +21,7 @@ from pm4py.util.constants import CASE_CONCEPT_NAME
 from pm4py.util import exec_utils
 from pm4py.util import constants
 from enum import Enum
-from typing import Optional, Dict, Any, Union, Tuple, List, Set
+from typing import Optional, Dict, Any, Union
 
 
 class Parameters(Enum):
@@ -67,7 +67,7 @@ def get_case_arrival_avg(df: pd.DataFrame, parameters: Optional[Dict[Union[str, 
 
     df_successive_rows = pd.concat([first_df, first_df_shift], axis=1)
     df_successive_rows['interlapsed_time'] = (
-            df_successive_rows[timest_key + '_2'] - df_successive_rows[timest_key]).astype('timedelta64[s]')
+            df_successive_rows[timest_key + '_2'] - df_successive_rows[timest_key]).dt.total_seconds()
 
     df_successive_rows = df_successive_rows.dropna(subset=['interlapsed_time'])
 
@@ -107,7 +107,7 @@ def get_case_dispersion_avg(df, parameters=None):
 
     df_successive_rows = pd.concat([first_df, first_df_shift], axis=1)
     df_successive_rows['interlapsed_time'] = (
-            df_successive_rows[timest_key + '_2'] - df_successive_rows[timest_key]).astype('timedelta64[s]')
+            df_successive_rows[timest_key + '_2'] - df_successive_rows[timest_key]).dt.total_seconds()
 
     df_successive_rows = df_successive_rows.dropna(subset=['interlapsed_time'])
 

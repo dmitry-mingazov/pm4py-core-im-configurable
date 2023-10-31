@@ -17,8 +17,6 @@
 from pm4py.objects.ocel.obj import OCEL
 from typing import Optional, Dict, Any
 from pm4py.algo.transformation.ocel.graphs import object_interaction_graph
-from pm4py.objects.ocel.util import filtering_utils
-from copy import copy
 from pm4py.util import exec_utils
 from enum import Enum
 import sys
@@ -83,10 +81,13 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None):
 
     ret = []
 
-    for cc in conn_comp:
-        subocel = copy(ocel)
-        subocel.objects = subocel.objects[subocel.objects[subocel.object_id_column].isin(cc)]
-        subocel = filtering_utils.propagate_object_filtering(subocel, parameters=parameters)
+    for index, cc in enumerate(conn_comp):
+        subocel = OCEL()
+        subocel.objects = ocel.objects[ocel.objects[ocel.object_id_column].isin(cc)]
+        subocel.relations = ocel.relations[ocel.relations[ocel.object_id_column].isin(cc)]
+        included_evs = subocel.relations[ocel.event_id_column].unique()
+        subocel.events = ocel.events[ocel.events[ocel.event_id_column].isin(included_evs)]
+
         ret.append(subocel)
 
     return ret

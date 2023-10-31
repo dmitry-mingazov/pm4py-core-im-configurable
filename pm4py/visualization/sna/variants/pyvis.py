@@ -40,7 +40,11 @@ def get_temp_file_name(format):
     """
     filename = tempfile.NamedTemporaryFile(suffix='.' + format)
 
-    return filename.name
+    name = filename.name
+
+    filename.close()
+
+    return name
 
 
 def apply(sna: SNA, parameters=None):
@@ -107,8 +111,13 @@ def apply(sna: SNA, parameters=None):
     got_net.show_buttons(filter_=['nodes', 'edges', 'physics'])
 
     F = open(temp_file_name, "w")
-    F.write(got_net.generate_html())
-    F.close()
+    try:
+        F.write(got_net.generate_html())
+        F.close()
+    except:
+        # networkx 3.1
+        F.close()
+        got_net.write_html(temp_file_name)
     
     return temp_file_name
 

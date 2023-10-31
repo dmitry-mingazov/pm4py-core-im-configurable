@@ -1,7 +1,9 @@
 import os
 
 import pm4py
+from pm4py.util import constants
 import pandas as pd
+
 
 def execute_script():
     ENABLE_VISUALIZATION = True
@@ -10,8 +12,8 @@ def execute_script():
     log1 = pm4py.read_xes("../tests/input_data/running-example.xes")
 
     # reads a CSV into a dataframe
-    df = pd.read_csv("../tests/input_data/running-example.csv")
-    df["time:timestamp"] = pd.to_datetime(df["time:timestamp"], utc=True)
+    df = pd.read_csv("../tests/input_data/running-example.csv", dtype_backend=constants.DEFAULT_PANDAS_PARSING_DTYPE_BACKEND)
+    df["time:timestamp"] = pd.to_datetime(df["time:timestamp"], utc=True, format="ISO8601")
     df["case:concept:name"] = df["case:concept:name"].astype("string")
 
     # converts the dataframe to an event log
@@ -63,8 +65,8 @@ def execute_script():
         pm4py.view_heuristics_net(heu_net, format="svg")
         pm4py.view_dfg(dfg, dfg_sa, dfg_ea, format="svg")
 
-    aligned_traces = pm4py.conformance_diagnostics_alignments(log1, petri_inductive, im_inductive, fm_inductive)
-    replayed_traces = pm4py.conformance_diagnostics_token_based_replay(log1, petri_inductive, im_inductive, fm_inductive)
+    aligned_traces = pm4py.conformance_diagnostics_alignments(log1, petri_inductive, im_inductive, fm_inductive, return_diagnostics_dataframe=False)
+    replayed_traces = pm4py.conformance_diagnostics_token_based_replay(log1, petri_inductive, im_inductive, fm_inductive, return_diagnostics_dataframe=False)
 
     fitness_tbr = pm4py.fitness_token_based_replay(log1, petri_inductive, im_inductive, fm_inductive)
     print("fitness_tbr", fitness_tbr)
@@ -172,7 +174,7 @@ def execute_script():
     os.remove("ru_wt_df.png")
 
     footprints = pm4py.discover_footprints(log1)
-    alignments = pm4py.conformance_diagnostics_alignments(log1, petri_inductive, im_inductive, fm_inductive)
+    alignments = pm4py.conformance_diagnostics_alignments(log1, petri_inductive, im_inductive, fm_inductive, return_diagnostics_dataframe=False)
 
     pm4py.view_footprints(footprints, format="svg")
     pm4py.view_alignments(log1, alignments, format="svg")

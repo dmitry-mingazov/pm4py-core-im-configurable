@@ -18,7 +18,7 @@ __doc__ = """
 The ``pm4py.convert`` module contains the cross-conversions implemented in ``pm4py``
 """
 
-from typing import Union, Tuple, Optional, Collection
+from typing import Union, Tuple, Optional, Collection, List, Any
 
 import pandas as pd
 from copy import deepcopy
@@ -27,16 +27,17 @@ from pm4py.objects.bpmn.obj import BPMN
 from pm4py.objects.ocel.obj import OCEL
 from pm4py.objects.heuristics_net.obj import HeuristicsNet
 from pm4py.objects.log.obj import EventLog, EventStream
-from pm4py.objects.petri_net.obj import PetriNet, Marking
+from pm4py.objects.petri_net.obj import Marking
 from pm4py.objects.process_tree.obj import ProcessTree
 from pm4py.objects.petri_net.obj import PetriNet
+from pm4py.util import constants
 from pm4py.utils import get_properties, __event_log_deprecation_warning
 from pm4py.objects.transition_system.obj import TransitionSystem
 from pm4py.util.pandas_utils import check_is_pandas_dataframe, check_pandas_dataframe_columns
 import networkx as nx
 
 
-def convert_to_event_log(obj: Union[pd.DataFrame, EventStream], case_id_key: str = "case:concept:name") -> EventLog:
+def convert_to_event_log(obj: Union[pd.DataFrame, EventStream], case_id_key: str = "case:concept:name", **kwargs) -> EventLog:
     """
     Converts a DataFrame/EventStream object to an event log object
 
@@ -58,15 +59,19 @@ def convert_to_event_log(obj: Union[pd.DataFrame, EventStream], case_id_key: str
     if check_is_pandas_dataframe(obj):
         check_pandas_dataframe_columns(obj, case_id_key=case_id_key)
 
+    parameters = get_properties(obj, case_id_key=case_id_key)
+    for k, v in kwargs.items():
+        parameters[k] = v
+
     from pm4py.objects.conversion.log import converter
-    log = converter.apply(obj, variant=converter.Variants.TO_EVENT_LOG, parameters=get_properties(obj, case_id_key=case_id_key))
+    log = converter.apply(obj, variant=converter.Variants.TO_EVENT_LOG, parameters=parameters)
 
     __event_log_deprecation_warning(log)
 
     return log
 
 
-def convert_to_event_stream(obj: Union[EventLog, pd.DataFrame], case_id_key: str = "case:concept:name") -> EventStream:
+def convert_to_event_stream(obj: Union[EventLog, pd.DataFrame], case_id_key: str = "case:concept:name", **kwargs) -> EventStream:
     """
     Converts a log object to an event stream
 
@@ -87,15 +92,19 @@ def convert_to_event_stream(obj: Union[EventLog, pd.DataFrame], case_id_key: str
     if check_is_pandas_dataframe(obj):
         check_pandas_dataframe_columns(obj, case_id_key=case_id_key)
 
+    parameters = get_properties(obj, case_id_key=case_id_key)
+    for k, v in kwargs.items():
+        parameters[k] = v
+
     from pm4py.objects.conversion.log import converter
-    stream = converter.apply(obj, variant=converter.Variants.TO_EVENT_STREAM, parameters=get_properties(obj, case_id_key=case_id_key))
+    stream = converter.apply(obj, variant=converter.Variants.TO_EVENT_STREAM, parameters=parameters)
 
     __event_log_deprecation_warning(stream)
 
     return stream
 
 
-def convert_to_dataframe(obj: Union[EventStream, EventLog]) -> pd.DataFrame:
+def convert_to_dataframe(obj: Union[EventStream, EventLog], **kwargs) -> pd.DataFrame:
     """
     Converts a log object to a dataframe
 
@@ -114,8 +123,12 @@ def convert_to_dataframe(obj: Union[EventStream, EventLog]) -> pd.DataFrame:
     if check_is_pandas_dataframe(obj):
         check_pandas_dataframe_columns(obj)
 
+    parameters = get_properties(obj)
+    for k, v in kwargs.items():
+        parameters[k] = v
+    
     from pm4py.objects.conversion.log import converter
-    df = converter.apply(obj, variant=converter.Variants.TO_DATA_FRAME, parameters=get_properties(obj))
+    df = converter.apply(obj, variant=converter.Variants.TO_DATA_FRAME, parameters=parameters)
     return df
 
 
@@ -263,7 +276,7 @@ def convert_to_reachability_graph(*args: Union[Tuple[PetriNet, Marking, Marking]
     return reachability_graph.construct_reachability_graph(net, im)
 
 
-def convert_log_to_ocel(log: Union[EventLog, EventStream, pd.DataFrame], activity_column: str = "concept:name", timestamp_column: str = "time:timestamp", object_types: Optional[Collection[str]] = None, obj_separator: str = " AND ") -> OCEL:
+def convert_log_to_ocel(log: Union[EventLog, EventStream, pd.DataFrame], activity_column: str = "concept:name", timestamp_column: str = "time:timestamp", object_types: Optional[Collection[str]] = None, obj_separator: str = " AND ", additional_event_attributes: Optional[Collection[str]] = None) -> OCEL:
     """
     Converts an event log to an object-centric event log with one or more than one
     object types.
@@ -273,6 +286,7 @@ def convert_log_to_ocel(log: Union[EventLog, EventStream, pd.DataFrame], activit
     :param timestamp_column: timestamp column
     :param object_types: list of columns to consider as object types
     :param obj_separator: separator between different objects in the same column
+    :param additional_event_attributes: additional attributes to be considered as event attributes in the OCEL
     :rtype: ``OCEL``
 
     .. code-block:: python3
@@ -293,7 +307,7 @@ def convert_log_to_ocel(log: Union[EventLog, EventStream, pd.DataFrame], activit
         object_types = list(set(x for x in log.columns if x == "case:concept:name" or x.startswith("ocel:type")))
 
     from pm4py.objects.ocel.util import log_ocel
-    return log_ocel.log_to_ocel_multiple_obj_types(log, activity_column, timestamp_column, object_types, obj_separator)
+    return log_ocel.log_to_ocel_multiple_obj_types(log, activity_column, timestamp_column, object_types, obj_separator, additional_event_attributes=additional_event_attributes)
 
 
 def convert_ocel_to_networkx(ocel: OCEL, variant: str = "ocel_to_nx") -> nx.DiGraph:
@@ -344,6 +358,46 @@ def convert_log_to_networkx(log: Union[EventLog, EventStream, pd.DataFrame], inc
     from pm4py.objects.conversion.log import converter
 
     return converter.apply(log, variant=converter.Variants.TO_NX, parameters={"include_df": include_df, "case_id_attribute": case_id_key, "other_case_attributes_as_nodes": other_case_attributes_as_nodes, "event_attributes_as_nodes": event_attributes_as_nodes})
+
+
+def convert_log_to_time_intervals(log: Union[EventLog, pd.DataFrame], filter_activity_couple: Optional[Tuple[str, str]] = None,
+                                  activity_key: str = "concept:name",
+                                  timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name",
+                                  start_timestamp_key: str = "time:timestamp"
+                                  ) -> List[List[Any]]:
+    """
+    Gets a list of intervals from an event log.
+    Each interval contains two temporally consecutive events and measures the time between the two events
+    (complete timestamp of the first against start timestamp of the second).
+
+    :param log: log object
+    :param filter_activity_couple: (optional) filters the intervals to only consider a given couple of activities of the log
+    :param activity_key: the attribute to be used as activity
+    :param timestamp_key: the attribute to be used as timestamp
+    :param case_id_key: the attribute to be used as case identifier
+    :param start_timestamp_key: the attribute to be used as start timestamp
+    :rtype: ``List[List[Any]]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        log = pm4py.read_xes('tests/input_data/receipt.xes')
+        time_intervals = pm4py.convert_log_to_time_intervals(log)
+        print(len(time_intervals))
+        time_intervals = pm4py.convert_log_to_time_intervals(log, ('Confirmation of receipt', 'T02 Check confirmation of receipt'))
+        print(len(time_intervals))
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]: raise Exception(
+        "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    properties = get_properties(log, activity_key=activity_key, case_id_key=case_id_key, timestamp_key=timestamp_key)
+    properties["filter_activity_couple"] = filter_activity_couple
+    properties[constants.PARAMETER_CONSTANT_START_TIMESTAMP_KEY] = start_timestamp_key
+
+    from pm4py.algo.transformation.log_to_interval_tree.variants import open_paths
+    return open_paths.log_to_intervals(log, parameters=properties)
 
 
 def convert_petri_net_to_networkx(net: PetriNet, im: Marking, fm: Marking) -> nx.DiGraph:

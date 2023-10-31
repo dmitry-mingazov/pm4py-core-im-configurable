@@ -21,7 +21,7 @@ import matplotlib
 
 from pm4py.util import exec_utils, constants
 from pm4py.visualization.graphs.util import common
-from typing import Optional, Dict, Any, Union, Tuple, List
+from typing import Optional, Dict, Any, Union, List
 
 
 class Parameters(Enum):
@@ -72,6 +72,7 @@ def apply_plot(x: List[float], y: List[float], parameters: Optional[Dict[Union[s
     ax = fig.add_axes([0, 0, 1, 1])
     ax.bar(x, y)
     pyplot.xlabel(x_axis)
+    pyplot.xticks(rotation=90, fontsize=8)
     pyplot.ylabel(y_axis)
     pyplot.title(title)
     pyplot.savefig(filename, bbox_inches="tight", transparent=is_transp)

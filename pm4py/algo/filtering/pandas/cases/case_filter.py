@@ -14,12 +14,11 @@
     You should have received a copy of the GNU General Public License
     along with PM4Py.  If not, see <https://www.gnu.org/licenses/>.
 '''
-import pandas as pd
 from pm4py.util import constants, xes_constants
 from enum import Enum
 from pm4py.util import exec_utils
 from copy import copy
-from typing import Optional, Dict, Any, Union, Tuple, List
+from typing import Optional, Dict, Any, Union
 import pandas as pd
 from pm4py.util.business_hours import soj_time_business_hours_diff
 
@@ -125,7 +124,7 @@ def filter_on_case_performance(df: pd.DataFrame, case_id_glue: str = constants.C
             lambda x: soj_time_business_hours_diff(x[timestamp_key], x[timestamp_key + "_2"], business_hours_slots), axis=1)
     else:
         stacked_df['caseDuration'] = stacked_df[timestamp_key + "_2"] - stacked_df[timestamp_key]
-        stacked_df['caseDuration'] = stacked_df['caseDuration'].astype('timedelta64[s]')
+        stacked_df['caseDuration'] = stacked_df['caseDuration'].dt.total_seconds()
     stacked_df = stacked_df[stacked_df['caseDuration'] <= max_case_performance]
     stacked_df = stacked_df[stacked_df['caseDuration'] >= min_case_performance]
     i1 = df.set_index(case_id_glue).index

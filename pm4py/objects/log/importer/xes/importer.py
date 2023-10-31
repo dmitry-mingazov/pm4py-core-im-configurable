@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with PM4Py.  If not, see <https://www.gnu.org/licenses/>.
 '''
-import pkgutil
+import importlib.util
 from enum import Enum
 
 from pm4py.objects.log.importer.xes.variants import iterparse, line_by_line, iterparse_mem_compressed, iterparse_20, chunk_regex
@@ -28,7 +28,7 @@ class Variants(Enum):
     CHUNK_REGEX = chunk_regex
 
 
-if pkgutil.find_loader("lxml"):
+if importlib.util.find_spec("lxml"):
     DEFAULT_VARIANT = Variants.ITERPARSE
 else:
     DEFAULT_VARIANT = Variants.CHUNK_REGEX
@@ -65,6 +65,12 @@ def apply(path, parameters=None, variant=DEFAULT_VARIANT):
         variant = Variants.ITERPARSE
     elif variant == 'chunk_regex':
         variant = Variants.CHUNK_REGEX
+    elif variant == "line_by_line":
+        variant = Variants.LINE_BY_LINE
+    elif variant == "iterparse_20":
+        variant = Variants.ITERPARSE_20
+    elif variant == "iterparse_mem_compressed":
+        variant = Variants.ITERPARSE_MEM_COMPRESSED
 
     log = variant.value.apply(path, parameters=parameters)
 

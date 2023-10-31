@@ -14,6 +14,18 @@
     You should have received a copy of the GNU General Public License
     along with PM4Py.  If not, see <https://www.gnu.org/licenses/>.
 '''
+
+import os
+import importlib.util
+from enum import Enum
+
+
+def get_param_from_env(name, default):
+    if name in os.environ and os.environ[name]:
+        return str(os.environ[name])
+    return default
+
+
 PARAMETER_CONSTANT_ACTIVITY_KEY = 'pm4py:param:activity_key'
 PARAMETER_CONSTANT_ATTRIBUTE_KEY = "pm4py:param:attribute_key"
 PARAMETER_CONSTANT_TIMESTAMP_KEY = 'pm4py:param:timestamp_key'
@@ -58,13 +70,21 @@ DEFAULT_ARTIFICIAL_END_ACTIVITY = "■"
 
 DEFAULT_BUSINESS_HOURS_WORKCALENDAR = None
 
-SHOW_EVENT_LOG_DEPRECATION = True
+SHOW_EVENT_LOG_DEPRECATION = True if get_param_from_env("PM4PY_SHOW_EVENT_LOG_DEPRECATION", "True").lower() == "true" else False
+SHOW_INTERNAL_WARNINGS = True if get_param_from_env("PM4PY_SHOW_INTERNAL_WARNINGS", "True").lower() == "true" else False
+
 TRIGGERED_DT_PARSING_WARNING = False
 
-DEFAULT_BGCOLOR = "white"
-DEFAULT_FORMAT_GVIZ_VIEW = "png"
+DEFAULT_BGCOLOR = get_param_from_env("PM4PY_DEFAULT_BGCOLOR", "white")
+DEFAULT_FORMAT_GVIZ_VIEW = get_param_from_env("PM4PY_DEFAULT_FORMAT_GVIZ_VIEW", "png")
+DEFAULT_RANKDIR_GVIZ = get_param_from_env("PM4PY_DEFAULT_RANKDIR_GVIZ", "LR")
+DEFAULT_TIMESTAMP_PARSE_FORMAT = get_param_from_env("PM4PY_DEFAULT_TIMESTAMP_PARSE_FORMAT", None)
 
-ENABLE_MULTIPROCESSING_DEFAULT = False
+ENABLE_MULTIPROCESSING_DEFAULT = True if get_param_from_env("PM4PY_ENABLE_MULTIPROCESSING_DEFAULT", "False").lower() == "true" else False
+SHOW_PROGRESS_BAR = True if get_param_from_env("PM4PY_SHOW_PROGRESS_BAR", "True").lower() == "true" else False
+DEFAULT_READ_XES_LEGACY_OBJECT = True if get_param_from_env("PM4PY_DEFAULT_READ_XES_LEGACY_OBJECT", "False").lower() == "true" else False
+DEFAULT_RETURN_DIAGNOSTICS_DATAFRAME = True if get_param_from_env("PM4PY_DEFAULT_RETURN_DIAGNOSTICS_DATAFRAME", "False").lower() == "true" else False
+DEFAULT_PANDAS_PARSING_DTYPE_BACKEND = get_param_from_env("PM4PY_DEFAULT_PANDAS_PARSING_DTYPE_BACKEND", "numpy_nullable")
 
 # Default business hour slots: Mondays to Fridays, 7:00 - 17:00 (in seconds)
 DEFAULT_BUSINESS_HOUR_SLOTS = [
@@ -75,8 +95,27 @@ DEFAULT_BUSINESS_HOUR_SLOTS = [
     ((4 * 24 + 7) * 60 * 60, (4 * 24 + 17) * 60 * 60),
 ]
 
+OPENAI_MAX_LEN = int(get_param_from_env("PM4PY_OPENAI_MAX_LEN", "10000"))
+OPENAI_API_KEY = get_param_from_env("PM4PY_OPENAI_API_KEY", None)
+OPENAI_DEFAULT_MODEL = get_param_from_env("PM4PY_OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
+OPENAI_EXEC_RESULT = True if get_param_from_env("PM4PY_OPENAI_EXEC_RESULT", "False").lower() == "true" else False
+DEFAULT_GVIZ_VIEW = get_param_from_env("PM4PY_DEFAULT_GVIZ_VIEW", None)
 
-from enum import Enum
+JQUERY_LINK = "https://code.jquery.com/jquery-3.6.3.min.js"
+GRAPHVIZJS_LINK = "https://github.com/mdaines/viz-js/releases/download/v1.8.2/viz.js"
+
+if importlib.util.find_spec("psutil"):
+    import psutil
+
+    parent_pid = os.getppid()
+    parent_name = str(psutil.Process(parent_pid).name())
+
+    if "PBIDesktop" in parent_name:
+        DEFAULT_GVIZ_VIEW = "matplotlib_view"
+
+
+if DEFAULT_GVIZ_VIEW is None:
+    DEFAULT_GVIZ_VIEW = "view"
 
 
 class AvailableSerializations(Enum):

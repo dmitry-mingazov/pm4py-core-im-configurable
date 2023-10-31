@@ -17,13 +17,13 @@
 __doc__ = """
 """
 
-from typing import List, Optional, Tuple, Dict, Union
+from typing import List, Optional, Tuple, Dict, Union, Generator, Set, Any
 
 from pm4py.objects.log.obj import Trace, EventLog, EventStream
 from pm4py.objects.conversion.log import converter as log_converter
 from pm4py.utils import __event_log_deprecation_warning
 from pm4py.objects.petri_net.obj import PetriNet, Marking
-from pm4py.utils import get_properties, constants, pandas_utils
+from pm4py.utils import get_properties, pandas_utils
 from pm4py.util.pandas_utils import check_is_pandas_dataframe, check_pandas_dataframe_columns
 
 import pandas as pd
@@ -153,7 +153,7 @@ def solve_extended_marking_equation(trace: Trace, sync_net: PetriNet, sync_im: M
 
 
 def check_soundness(petri_net: PetriNet, initial_marking: Marking,
-                    final_marking: Marking) -> bool:
+                    final_marking: Marking, print_diagnostics: bool = False) -> Tuple[bool, Dict[str, Any]]:
     """
     Check if a given Petri net is a sound WF-net.
     A Petri net is a WF-net iff:
@@ -165,11 +165,15 @@ def check_soundness(petri_net: PetriNet, initial_marking: Marking,
         - it contains no deadlocks
         - we are able to always reach the final marking
     For a formal definition of sound WF-net, consider: http://www.padsweb.rwth-aachen.de/wvdaalst/publications/p628.pdf
+    In the returned object, the first element is a boolean indicating if the Petri net is a sound workflow net.
+    The second element is a set of diagnostics collected while running WOFLAN
+    (expressed as a dictionary associating the keys [name of the diagnostics] with the corresponding diagnostics).
 
     :param petri_net: petri net
     :param initial_marking: initial marking
     :param final_marking: final marking
-    :rtype: ``bool``
+    :param print_diagnostics: boolean value that sets up additional prints during the execution of WOFLAN
+    :rtype: ``Tuple[bool, Dict[str, Any]]``
 
     .. code-block:: python3
 
@@ -179,7 +183,40 @@ def check_soundness(petri_net: PetriNet, initial_marking: Marking,
         is_sound = pm4py.check_soundness(net, im, fm)
     """
     from pm4py.algo.analysis.woflan import algorithm as woflan
-    return woflan.apply(petri_net, initial_marking, final_marking)
+    return woflan.apply(petri_net, initial_marking, final_marking,
+                        parameters={"return_asap_when_not_sound": True, "return_diagnostics": True, "print_diagnostics": print_diagnostics})
+
+
+def cluster_log(log: Union[EventLog, EventStream, pd.DataFrame], sklearn_clusterer=None, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Generator[EventLog, None, None]:
+    """
+    Apply clustering to the provided event log
+    (method based on the extraction of profiles for the traces of the event log)
+    based on a Scikit-Learn clusterer (default: K-means with two clusters)
+
+    :param log: log object
+    :param sklearn_clusterer: the Scikit-Learn clusterer to be used (default: KMeans(n_clusters=2, random_state=0, n_init="auto"))
+    :param activity_key: attribute to be used for the activity
+    :param timestamp_key: attribute to be used for the timestamp
+    :param case_id_key: attribute to be used as case identifier
+    :rtype: ``Generator[pd.DataFrame, None, None]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        for clust_log in pm4py.cluster_log(df):
+            print(clust_log)
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]: raise Exception(
+        "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    properties = get_properties(log, activity_key=activity_key, case_id_key=case_id_key, timestamp_key=timestamp_key)
+    if sklearn_clusterer is not None:
+        properties["sklearn_clusterer"] = sklearn_clusterer
+
+    from pm4py.algo.clustering.profiles import algorithm as clusterer
+    return clusterer.apply(log, parameters=properties)
 
 
 def insert_artificial_start_end(log: Union[EventLog, pd.DataFrame], activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Union[EventLog, pd.DataFrame]:
@@ -210,6 +247,76 @@ def insert_artificial_start_end(log: Union[EventLog, pd.DataFrame], activity_key
     else:
         from pm4py.objects.log.util import artificial
         return artificial.insert_artificial_start_end(log, parameters=properties)
+
+
+def insert_case_service_waiting_time(log: Union[EventLog, pd.DataFrame], service_time_column: str = "@@service_time",
+                                     sojourn_time_column: str = "@@sojourn_time",
+                                     waiting_time_column: str = "@@waiting_time", activity_key: str = "concept:name",
+                                     timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name",
+                                     start_timestamp_key: str = "time:timestamp") -> pd.DataFrame:
+    """
+    Inserts the service/waiting/sojourn times of the case in the dataframe.
+
+    :param log: event log / Pandas dataframe
+    :param service_time_column: column to be used for the service time
+    :param sojourn_time_column: column to be used for the sojourn time
+    :param waiting_time_column: column to be used for the waiting time
+    :param activity_key: attribute to be used for the activity
+    :param timestamp_key: attribute to be used for the timestamp
+    :param case_id_key: attribute to be used as case identifier
+    :param start_timestamp_key: attribute to be used as start timestamp
+    :rtype: ``pd.DataFrame``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        dataframe = pm4py.insert_case_service_waiting_time(dataframe, activity_key='concept:name', timestamp_key='time:timestamp', case_id_key='case:concept:name', start_timestamp_key='time:timestamp')
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]: raise Exception(
+        "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    properties = get_properties(log, activity_key=activity_key, case_id_key=case_id_key, timestamp_key=timestamp_key)
+
+    log = log_converter.apply(log, variant=log_converter.Variants.TO_DATA_FRAME, parameters=properties)
+
+    return pandas_utils.insert_case_service_waiting_time(log, case_id_column=case_id_key, timestamp_column=timestamp_key, start_timestamp_column=start_timestamp_key, service_time_column=service_time_column, waiting_time_column=waiting_time_column, sojourn_time_column=sojourn_time_column)
+
+
+def insert_case_arrival_finish_rate(log: Union[EventLog, pd.DataFrame], arrival_rate_column="@@arrival_rate", finish_rate_column="@@finish_rate",
+                                    activity_key: str = "concept:name",
+                                     timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name",
+                                     start_timestamp_key: str = "time:timestamp") -> pd.DataFrame:
+    """
+    Inserts the arrival/finish rates of the case in the dataframe.
+    The arrival rate is computed as the difference between the start time of the case and the start time of the previous case to start.
+    The finish rate is computed as the difference between the end time of the case and the end time of the next case to end.
+
+    :param log: event log / Pandas dataframe
+    :param arrival_rate_column: column to be used for the arrival rate
+    :param finish_rate_column: column to be used for the finish rate
+    :param activity_key: attribute to be used for the activity
+    :param timestamp_key: attribute to be used for the timestamp
+    :param case_id_key: attribute to be used as case identifier
+    :param start_timestamp_key: attribute to be used as start timestamp
+    :rtype: ``pd.DataFrame``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        dataframe = pm4py.insert_case_arrival_finish_rate(dataframe, activity_key='concept:name', timestamp_key='time:timestamp', case_id_key='case:concept:name', start_timestamp_key='time:timestamp')
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]: raise Exception(
+        "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    properties = get_properties(log, activity_key=activity_key, case_id_key=case_id_key, timestamp_key=timestamp_key)
+
+    log = log_converter.apply(log, variant=log_converter.Variants.TO_DATA_FRAME, parameters=properties)
+
+    return pandas_utils.insert_case_arrival_finish_rate(log, case_id_column=case_id_key, timestamp_column=timestamp_key, start_timestamp_column=start_timestamp_key, arrival_rate_column=arrival_rate_column, finish_rate_column=finish_rate_column)
 
 
 def check_is_workflow_net(net: PetriNet) -> bool:
@@ -325,3 +432,23 @@ def reduce_petri_net_implicit_places(net: PetriNet, im: Marking, fm: Marking) ->
     """
     from pm4py.objects.petri_net.utils import murata
     return murata.apply_reduction(net, im, fm)
+
+
+def get_enabled_transitions(net: PetriNet, marking: Marking) -> Set[PetriNet.Transition]:
+    """
+    Gets the transitions enabled in a given marking
+
+    :param net: Petri net
+    :param marking: marking
+    :rtype: ``Set[PetriNet.Transition]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        net, im, fm = pm4py.read_pnml('tests/input_data/running-example.pnml')
+        # gets the transitions enabled in the initial marking
+        enabled_transitions = pm4py.get_enabled_transitions(net, im)
+    """
+    from pm4py.objects.petri_net import semantics
+    return semantics.enabled_transitions(net, marking)

@@ -17,7 +17,7 @@
 from pm4py.algo.discovery.ocel.interleavings.utils import merge_dataframe_rel_cases
 import pandas as pd
 from typing import Optional, Dict, Any
-from pm4py.util import exec_utils, constants, xes_constants, pandas_utils
+from pm4py.util import exec_utils, constants, xes_constants
 from enum import Enum
 
 
@@ -116,6 +116,6 @@ def apply(left_df: pd.DataFrame, right_df: pd.DataFrame, case_relations: pd.Data
 
     md = pd.concat([df1, df2])
     md = md.sort_values([index_key+left_suffix, index_key+right_suffix])
-    md[timestamp_diff] = (md[target_timestamp] - md[source_timestamp]).astype('timedelta64[s]')
+    md[timestamp_diff] = (md[target_timestamp] - md[source_timestamp]).dt.total_seconds()
 
     return md

@@ -24,6 +24,9 @@ import pandas as pd
 
 from pm4py.objects.ocel.obj import OCEL
 from pm4py.util import constants
+import sys
+import random
+
 
 def ocel_get_object_types(ocel: OCEL) -> List[str]:
     """
@@ -158,7 +161,7 @@ def ocel_objects_summary(ocel: OCEL) -> pd.DataFrame:
     objects_summary = act_comb.join(lif_start_tim)
     objects_summary = objects_summary.join(lif_end_tim)
     objects_summary = objects_summary.reset_index()
-    objects_summary["lifecycle_duration"] = (objects_summary["lifecycle_end"] - objects_summary["lifecycle_start"]).astype('timedelta64[s]')
+    objects_summary["lifecycle_duration"] = (objects_summary["lifecycle_end"] - objects_summary["lifecycle_start"]).dt.total_seconds()
     ev_rel_obj = ocel.relations.groupby(ocel.event_id_column)[ocel.object_id_column].apply(list).to_dict()
     objects_ids = set(ocel.objects[ocel.object_id_column].unique())
     graph = {o: set() for o in objects_ids}
@@ -232,13 +235,16 @@ def discover_ocdfg(ocel: OCEL, business_hours=False, business_hour_slots=constan
     return ocdfg_discovery.apply(ocel, parameters=parameters)
 
 
-def discover_oc_petri_net(ocel: OCEL, inductive_miner_variant: str = "im") -> Dict[str, Any]:
+def discover_oc_petri_net(ocel: OCEL, inductive_miner_variant: str = "im", diagnostics_with_tbr: bool = False) -> Dict[str, Any]:
     """
     Discovers an object-centric Petri net from the provided object-centric event log.
 
     Reference paper: van der Aalst, Wil MP, and Alessandro Berti. "Discovering object-centric Petri nets." Fundamenta informaticae 175.1-4 (2020): 1-40.
 
     :param ocel: object-centric event log
+    :param inductive_miner_variant: specify the variant of the inductive miner to be used
+                            ("im" for traditional; "imd" for the faster inductive miner directly-follows)
+    :param diagnostics_with_tbr: (boolean) enables the computation of some diagnostics using token-based replay
     :rtype: ``Dict[str, Any]``
 
     .. code-block:: python3
@@ -250,6 +256,8 @@ def discover_oc_petri_net(ocel: OCEL, inductive_miner_variant: str = "im") -> Di
     from pm4py.algo.discovery.ocel.ocpn import algorithm as ocpn_discovery
     parameters = {}
     parameters["inductive_miner_variant"] = inductive_miner_variant
+    parameters["diagnostics_with_token_based_replay"] = diagnostics_with_tbr
+
     return ocpn_discovery.apply(ocel, parameters=parameters)
 
 
@@ -285,6 +293,51 @@ def discover_objects_graph(ocel: OCEL, graph_type: str = "object_interaction") -
         return object_codeath_graph.apply(ocel)
 
 
+def ocel_o2o_enrichment(ocel: OCEL, included_graphs: Optional[Collection[str]] = None) -> OCEL:
+    """
+    Inserts the information inferred from the graph computations (pm4py.discover_objects_graph)
+    in the list of O2O relations of the OCEL.
+
+    :param ocel: object-centric event log
+    :param included_graphs: types of graphs to include, provided as list/set of strings (object_interaction_graph, object_descendants_graph, object_inheritance_graph, object_cobirth_graph, object_codeath_graph)
+    :rtype: ``OCEL``
+
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('trial.ocel')
+        ocel = pm4py.ocel_o2o_enrichment(ocel)
+        print(ocel.o2o)
+    """
+    from pm4py.algo.transformation.ocel.graphs import ocel20_computation
+    return ocel20_computation.apply(ocel, parameters={"included_graphs": included_graphs})
+
+
+def ocel_e2o_lifecycle_enrichment(ocel: OCEL) -> OCEL:
+    """
+    Inserts lifecycle-based information (when an object is created/terminated or other types of relations)
+    in the list of E2O relations of the OCEL
+
+    :param ocel: object-centric event log
+    :rtype: ``OCEL``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('trial.ocel')
+        ocel = pm4py.ocel_e2o_lifecycle_enrichment(ocel)
+        print(ocel.relations)
+    """
+    from pm4py.objects.ocel.util import e2o_qualification
+    ocel = e2o_qualification.apply(ocel, "termination")
+    ocel = e2o_qualification.apply(ocel, "creation")
+    ocel = e2o_qualification.apply(ocel, "other")
+    return ocel
+
+
 def sample_ocel_objects(ocel: OCEL, num_objects: int) -> OCEL:
     """
     Given an object-centric event log, returns a sampled event log with a subset of the objects
@@ -308,13 +361,22 @@ def sample_ocel_objects(ocel: OCEL, num_objects: int) -> OCEL:
     return sampling.sample_ocel_objects(ocel, parameters={"num_entities": num_objects})
 
 
-def sample_ocel_connected_components(ocel: OCEL, connected_components: int = 1) -> OCEL:
+def sample_ocel_connected_components(ocel: OCEL, connected_components: int = 1,
+                                     max_num_events_per_cc: int = sys.maxsize,
+                                     max_num_objects_per_cc: int = sys.maxsize,
+                                     max_num_e2o_relations_per_cc: int = sys.maxsize) -> OCEL:
     """
     Given an object-centric event log, returns a sampled event log with a subset of the executions.
     The number of considered connected components need to be specified by the user.
 
+    Paper:
+    Adams, Jan Niklas, et al. "Defining cases and variants for object-centric event data." 2022 4th International Conference on Process Mining (ICPM). IEEE, 2022.
+
     :param ocel: Object-centric event log
     :param connected_components: Number of connected components to pick from the OCEL
+    :param max_num_events_per_cc: maximum number of events allowed per connected component (default: sys.maxsize)
+    :param max_num_objects_per_cc: maximum number of events allowed per connected component (default: sys.maxsize)
+    :param max_num_e2o_relations_per_cc: maximum number of event-to-object relationships allowed per connected component (default: sys.maxsize)
     :rtype: ``OCEL``
 
     .. code-block:: python3
@@ -325,14 +387,18 @@ def sample_ocel_connected_components(ocel: OCEL, connected_components: int = 1) 
         sampled_ocel = pm4py.sample_ocel_connected_components(ocel, 5) # keeps only 5 connected components
     """
     from pm4py.algo.transformation.ocel.split_ocel import algorithm
-    ocel_splits = algorithm.apply(ocel)
+    ocel_splits = algorithm.apply(ocel, variant=algorithm.Variants.CONNECTED_COMPONENTS)
     events = None
     objects = None
     relations = None
-    ocel_splits = sorted(list(ocel_splits), key=lambda x: (len(x.events), len(x.relations)))
-    i = 0
-    while i < min(connected_components, len(ocel_splits)):
-        cc = ocel_splits[i]
+    ocel_splits = [x for x in ocel_splits if
+                   len(x.events) <= max_num_events_per_cc and len(x.objects) <= max_num_objects_per_cc and len(
+                       x.relations) <= max_num_e2o_relations_per_cc]
+
+    if len(ocel_splits) > 0:
+        ocel_splits = random.sample(ocel_splits, min(connected_components, len(ocel_splits)))
+
+    for cc in ocel_splits:
         if events is None:
             events = cc.events
             objects = cc.objects
@@ -341,7 +407,6 @@ def sample_ocel_connected_components(ocel: OCEL, connected_components: int = 1) 
             events = pd.concat([events, cc.events])
             objects = pd.concat([objects, cc.objects])
             relations = pd.concat([relations, cc.relations])
-        i = i + 1
 
     return OCEL(events, objects, relations)
 
@@ -464,3 +529,34 @@ def ocel_add_index_based_timedelta(ocel: OCEL) -> OCEL:
     del ocel.events["@@timedelta"]
     del ocel.relations["@@timedelta"]
     return ocel
+
+
+def cluster_equivalent_ocel(ocel: OCEL, object_type: str, max_objs: int = sys.maxsize) -> Dict[str, Collection[OCEL]]:
+    """
+    Perform a clustering of the object-centric event log, based on the 'executions' of
+    a single object type. Equivalent 'executions' are grouped in the output dictionary.
+
+    :param ocel: object-centric event log
+    :param object_type: reference object type
+    :param max_objs: maximum number of objects (of the given object type)
+    :rtype: ``Dict[str, Collection[OCEL]]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('trial.ocel')
+        clusters = pm4py.cluster_equivalent_ocel(ocel, "order")
+    """
+    from pm4py.algo.transformation.ocel.split_ocel import algorithm as split_ocel_algorithm
+    from pm4py.objects.ocel.util import rename_objs_ot_tim_lex
+    from pm4py.algo.transformation.ocel.description import algorithm as ocel_description
+    lst_ocels = split_ocel_algorithm.apply(ocel, variant=split_ocel_algorithm.Variants.ANCESTORS_DESCENDANTS, parameters={"object_type": object_type, "max_objs": max_objs})
+    ret = {}
+    for index, oc in enumerate(lst_ocels):
+        oc_ren = rename_objs_ot_tim_lex.apply(oc)
+        descr = ocel_description.apply(oc_ren, parameters={"include_timestamps": False})
+        if descr not in ret:
+            ret[descr] = []
+        ret[descr].append(oc)
+    return ret

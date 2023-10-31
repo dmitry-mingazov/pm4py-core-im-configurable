@@ -1,5 +1,592 @@
 # Changelog of pm4py
 
+
+## pm4py 2.7.8.3 (2023.11.XX)
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Fixed
+* 2e5d06da05e8e961b3f99a0194bd8bf072ce1e32
+  * fixed rebase with timestamp format specification
+* 753202cee239e62e47a29fd1bc8658f8f36a39d1
+  * removed warnings (deprecation) in tests execution
+* a209f0df4c16812ac1109150046357c625253106
+  * unneeded workaround in managing datetimes inside Pandas
+
+### Removed
+
+### Other
+* 6e3b855c30479d2311458f9732732fc30a248270
+  * changed execute_tests.py format
+* c62f6fd480b67e466e4c906927413b9f2c87aff4
+  * in tests and examples, provide possibility to try with different Pandas backends
+* 5424eb9ed576a1ef4f0485ce186b0300bf1ace03
+  * example to locate the features for a specific case using pm4py.extract_features_dataframe
+
+---
+
+
+## pm4py 2.7.8.2 (2023.10.18)
+
+### Added
+
+### Changed
+* d219db5ece5ce68239b217072bf04ac576ded062
+  * refactoring DFG utility to also output
+    variant-specific paths statistics on request
+* 86cbdb103410a692c15e35a1723f7107e573656e
+  * removing unused imports throughout the code
+* c37cdd31bfbd5742d769fa7a00cea2615e679e2e
+  * increased test coverage by testing also the old EventLog methods
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Other
+* 26ee9d9311f353327184f3f4b91378a1aa2cdc9d
+  * dependencies sheet script
+
+
+---
+
+
+## pm4py 2.7.8.1 (2023.10.12)
+
+### Added
+
+### Changed
+* b3d88dcfa6553beae4b289191d6aa29020daeeb2
+  * refactor pm4py.llm.abstract_log_features (split in two methods)
+* b9f74be6ffb68ac1b8c32d6c2cfb3cb3ae5d173c
+  * playout variant selection in the simplified interface
+* 5aedd3048a9780816f37ad7f89c65a3e56b5229c
+  * support for log2log alignments in the simplified interface
+* b254210f09d1844dee11b9ccd262baf62779edca
+  * return legacy log option in pm4py.parse_event_log_string
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Other
+* 9717be4fc6be34c9278ddd7f2d39a0cb8efc4ec2
+  * verbose option configuration
+* 671688effb5ccf01d5653726de6725810333af0a
+  * support to OCEL 2.0 JSON specification
+
+
+---
+
+
+## pm4py 2.7.8 (2023.10.06)
+
+### Added
+
+### Changed
+* 634b6a5ac1b40963baa76a42a10c3c22176aaf84
+  f6993293d665e2f7b69c27ce0f09d2df4e889b0b
+  f0240670292086cb3b6fe523b1646dcfa4c71ddc
+  * Refactoring OCEL import/export
+* c1379120480539f5578a52ce6d76effb4819b3c6
+  * centralized enabling/disabling of TQDM progress bar + Disabling progress bar in tests
+* 08c2c16d17d2cbe26224662032a298f6b0a409a9
+  * avoiding the necessity of re-creating setup.py when new packages are added to pm4py
+* a7dc86f7fd821b5dd229ff404b5afa3b5ad919b4
+  * disable IM fallthroughs in the simplified interface
+
+### Deprecated
+
+### Fixed
+* 063a6d64bae61f1b54444e0b34ec0926b504aa34
+  * properly closing file objects in different pm4py importers/exporters (XES, PNML, PTML, ...)
+* 35f13b65a0523f889748679fbe90cf2d041e1038
+  * fixing XES importing warnings in obtaining the resulting pd.DataFrame
+* ef548ef18f514ad6ad0a32a104f380b322ab72e7
+  * fixing test/examples execution
+* d1b39bde1b14f160c0fff42bdc6b172bb0ae760e
+	* fix Petri net serialization
+* e51c5e1e084a7fd7d13cb8d1381f868435762cca
+	* fixing TBR diagnostics when the methods are called on pd.DataFrame
+
+### Removed
+
+### Other
+* 49a472d002890b35e3f59ef93fd75f2e35455715
+	* storing stable pm4py Python requirements for the old Python 3.8
+
+---
+
+
+## pm4py 2.7.7 (2023.09.22)
+
+### Added
+* 056d9e5714e2ad0a21fbcac0725ea4fb7aae260c
+  * encoding specification in pm4py.read and pm4py.write classes
+
+### Changed
+* f81d62ad8dc8a76aabdf90763a8bd8b8e2ea2aa9
+  * fixed compatibility with Python 3.12 (removed deprecation warnings)
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Other
+
+
+---
+
+
+## pm4py 2.7.6 (2023.08.28)
+
+### Added
+* 69e6692ff08868586f9d4d29c6b8e7dd6609c732
+  * rankdir option for simplified interface's visualizations (and fixing here and there support in main methods).
+
+### Changed
+* 95bbaee94e177644ac12d526abbba0eafdf6eb00
+  * refactoring of the textual abstractions of the DFG and variants (split in two methods + provision of primary and
+    secondary performance metrics).
+* 710b09619ebff74a0166e9518e2390289b0f686d
+  * refactoring OC-Petri nets discovery and visualization.
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Other
+
+---
+
+## pm4py 2.7.5.2 (2023.08.30)
+
+### Added
+* 889f0531c0e307bfe56d933a294c61470a001e13
+  * POWL feature
+
+### Changed
+
+### Deprecated
+
+### Fixed
+* 9105eb375cb2fee7d731862b3fe5bf1ce88d455c
+  * various bug fixes OCEL import
+* 0c483e52b6ea41a4df8b83ad5e39e3c1e2dc5539
+  * bug fix OCEL 2.0
+
+### Removed
+
+### Other
+
+---
+
+## pm4py 2.7.5.1 (2023.08.28)
+
+### Added
+* 6760518dea19334a21442200bef647e4c07f3636
+  * LLM abstraction of the temporal profile model
+* 13d001c76e3de40786dce75e76e56a13a821173a
+  * set of event logs for fairness assessment (hospital, hiring, lending, renting)
+* e3044278b3e7d984c7fdf9e39554cc4551332739
+  50f59379fb8f49bbe6eb1796c6664a6057225b95
+  * added OCEL filters:
+    * length of a connected components
+    * presence of at least an object of a given object type
+    * activity executed
+
+### Changed
+* 84629e2ea342348e30aa04a7d41ad7b39159b400
+  * changed case-based text abstraction header text
+* c3886beff7abc82db56c60835479f47a76e545d6
+  * refactored log_to_interval_tree methods in two methods
+      (log to intervals, and intervals to tree)
+  * added queue-related examples
+* da3a12f615dba3c46793a2d9977dfca11dad85b0
+  * avoid annotation start/end edges in DFG with performance metrics
+*  37fba9285cfde95309142e4404f9cfbcb2b9296c
+  * visualizations support nanoseconds granularity when needed
+* afb6f6ba74c03f422ce8d8417f840f6eb6aa3a6e
+  * inductive miner - parameter to disable the computation of fall-throughs
+    and the strict sequence cut.
+* 49e738a7aee6e05ecf0ec50cd6aaa4cd0668687d
+  * inductive miner - optimization in the computation of the transitive relations
+
+### Deprecated
+
+### Fixed
+* 12c9d877e5fb27b709d06c21310ab32868c2ea74
+  * bug fix textual abstraction attributes LLM
+* 3b9fb1ffc9646cf56a0b84a9b95dfdfd9b7fd565
+  * small fixes pre-existing Jupyter notebooks
+* 17f1340cc8a1095e6cdd8a8d85b92a3800a1e7f9
+  * bug fix textual abstraction log skeleton
+* 1217473888b97a00f34834b4746bb7f7e4744df3
+  * bug fix PuLP solver with extremely low weights
+* badbff239cf8a703e7d05c1cc2fc6d51af8aa7d7
+  * bug fix WOFLAN when no basis vectors are identified
+* f528509c6b5117aca6285686e78175dbcf4ba057
+  * fixed path to Graphviz.JS
+* ca79aa9b9e51ba3a95665d5d53c8e5ab5028bf12
+  * minor fix TBR generalization parameters
+* 57a30fb452a759bc71f707e67bf0f63118194b7f
+  * method to sample OCEL connected components is fixed
+* 051d98cd0bfbf86419fe68f6cb0c1f139855cfdf
+  * fixed divergence from Github repo
+* e0cbce6b90a16ef1e21edca45b83d69e1743674c
+  * fixed typo in OCPN discovery method
+* 0af7368ce306678466df759ca15359c1e3901bcd
+  * fixed discover_petri_net_inductive multi_processing parameter
+    default value.
+* 23aae39adf83f199a3b53533c45cbae4c7a9354e
+  * bug fixes OCEL feature extraction
+* a3faf71ac4eddb22f1bc80a35c752b6b9d98df99
+  * bug fix direct conversion process tree -> BPMN (loops with several REDOs)
+* fa242485e6c99dded04d1d9c10ee1ed81ea96252
+  * bug fix OCEL2.0 SQLite importer
+* 0e1b0daad489eb8100cddd2105e6405862a184de
+  * fixed parameters in OCPN discovery
+
+### Removed
+* bf5574a34a31b93024dd9feb54acc5cc475640bd
+  * change-of-mind on format_dataframe deprecation warning
+
+### Other
+* 916ea3163119afe7aa0fc9f6c43624147d6c0f9f
+  * reference to published paper in OCEL feature extraction
+* 549aa7c6766f1a51425a7a65673173c55d9731e9
+  * updated reference to PM4Py website
+* 20ce84db4e195937c77280c950ff12083fc5833b
+  * example for log granularity change
+* 0de0be4fa11183f034fbb61e936dee365bbdea4a
+  * example for the management of stochastic Petri nets
+* 570df6c21a03e6ac37ba2d7c9af160e8b175a68f
+  * manual creation of the constraints of the log skeleton (example)
+* 959a685696da725180be0675fd00aaede9bb17bd
+  * examples for LLM-based fairness
+* 7a98fe6b943db9d2402a4b867e8f6a441cdde243
+  * docstring for OC-DFG discovery
+
+---
+
+## pm4py 2.7.5 (2023.06.30)
+
+### Added
+* f6d5a343808b350e83caac8cb0480e2ca671bfb4
+  * method in the simplified interface to get the curently enabled transitions
+* 44964d19b7052350f21d637c1a55048026d2b165
+  * replay prefix using TBR (to obtain a marking)
+* eb49b29863c65102ada2443ae66d7fe529a3d91e
+  * OCEL relational validation
+* a128100af8182070453df161a22dbb54d1c08458
+  * LLM textual abstraction of a single case object
+* 0f5b5668a8f134a36e65349f835bf4e1835ae9ea
+  * LLM textual abstraction of the log skeleton
+* 3287c53c83f0198b47c56a3ef7b15ed8d6e09b3f
+  * LLM textual abstraction of EventLog features
+* 7892697f04e14bbfecb7842139a82daf939aefbe
+  * restored OpenAI query executor
+
+### Changed
+* e414949a69e0376c0299955ecf7cb7d27f7cf349
+  * removed deprecation warning dotted chart and performance spectrum' packages
+* 8f4ebdf93c3cbb57e7427238871d4b2e048f357c
+  * added warning for dropping rows with empty case ID/activity/timestamp in format_dataframe
+* 1b35a81e58ee145d5c82029c1110234ac3899856
+  * added the possibility to specify the cae ID in project_on_event_attribute
+* 6a4025f9a430ea32da29dd4142a51473ba16c5ef
+  * optimization connected components filtering OCEL
+* c1028d56269e775167c3cb89827e02a57d263384
+  * minor changes OCEL 2.0 XML importers/exporters
+* 3287c53c83f0198b47c56a3ef7b15ed8d6e09b3f
+  * max_num_edges parameter in simplified interface's DFG visualization
+* 8e04c243a2de3e344832f719e085a0630b3a5f1c
+  * removing point border in dotted chart
+* c5056add3101b7a846a630d67062f5ca9b8c84d3
+  * deug parameter for Petri nets visualization in simplified interface
+* b11d3ae66c1ddf3be244f233efd8c7b1a02124e2
+  * moved "pm4py.algo.querying.openai" to "pm4py.algo.querying.llm"
+  * moved "pm4py.openai" to "pm4py.llm" (simplified interface)
+
+### Deprecated
+
+### Fixed
+* 437a8c8b885b8e11557ff20e9a5635eeaf4c919c
+  * fix problem OCEL copy/deepcopy
+* 2705b6b6be171bf821570f58027db531e7290801
+  * small fixes feature extraction event log
+* 8a588ff40143f585faf643a5f9cb9f7137ab32e6
+  * small fix textual abstraction OCEL features
+* 63108ee30c05a60a99f58a1fbb31dd33228c76fc
+  * fixing DFG visualization when some activities do not appear in the DFG (single activity cases)
+* 30932c4de18ea55dace9678cb87a784d7eb438af
+  * bug fix Alpha Miner on Pandas dataframes
+* 5cc3ded30c7f15ebe13d0a74894ca7f18f8a96e4
+  * fix heuristics net visualization's background color issue
+
+### Removed
+
+### Other
+
+
+---
+
+## pm4py 2.7.4 (2023.05.08)
+
+### Added
+* 546cff5c7d91810b068777870ae20dab2b110150
+  * pm4py.openai.abstract_log_attributes method in the simplified interface
+* e9ee619300f59713c481d9fd592b3eeefc489175
+  * added get_diagnostics_dataframe method for temporal profile-based conformance checking
+* 7a410f6cb33773cb218c5ce7df37ded4844df7b9
+  * possibility to get GraphvizJS HTML output
+
+### Changed
+* 45dcc3de2ddf4348f8a7e31bae54529ec2ab9ad7
+  * consistency checks when importing/exporting OCELs
+* 9c4eb3a8512fbd20f7352341131ec2855b108b95
+  * consistency checks OCEL feature extraction
+* 091908c11a62b6708bb64adafa7a4168099b140d
+  * footprints visualization in the simplified interface - comparison
+* 69d50384784f67a74823a4a0af99a1ebf9f0c302
+  * minor improvement log2ocel conversion
+* 3e88d920caf8d0dc902af2dcc2c3dcb3d752bfe8
+  * removed hard-coded prompts from OpenAI API
+  * added abstract_ocel_ocdfg and abstract_ocel_variants abstractions
+
+### Deprecated
+
+### Fixed
+* f8b77348b47c782a709cb6ee5646715c20e35710
+  * fixed performance spectrum computation on Pandas dataframes
+
+### Removed
+
+### Other
+
+
+--
+
+## pm4py 2.7.3 (2023.04.12)
+
+### Added
+* e561089945951e91b2ecfe0f223b35bd2d351630
+  * other NLP/LLM abstractions
+* 42b0d2a6f6fe7430d382117bf0ce54e8fd60ce23
+  * return diagnostics dataframe in pm4py.conformance methods&
+
+### Changed
+* 44fc2aecd0885534dd2083a4011be9e031c3a04a
+  * improved integration possibilities with PowerBI
+* f805fd46673be291584ce489bf9def73df1dba71
+  * read constants from environment variables
+* 6737019a6de4e15d6063506e5a7ea2e571fc167d
+  * added DEFAULT_RETURN_DIAGNOSTICS_DATAFRAME option in constants
+* 0ba6b34c19587357425cb27cccb23b12d70978a7
+  * workaround for inconsistencies in pm4py.stats.get_trace_attribute_values
+
+### Deprecated
+
+### Fixed
+* 7dfeac5ddc4f4f6a8b5410fc2e04016590b6f22a
+  * fixed OCEL2 XML importer
+  
+### Removed
+
+### Other
+
+
+---
+
+## pm4py 2.7.2 (2023.04.03)
+
+### Added
+
+### Changed
+* c617471c12c1f07c092e32ccf6d76d5aa6c4ec2a
+  * change X Axis in pm4py.view_events_distribution_graph
+* cf744cb22cd6affb0a8d7ce26b9827c3e8b0b903
+  * changes/fixes to the alignments table representation
+
+### Deprecated
+
+### Fixed
+* d0ee4a8c8db76900444bc3e0026b0ea54581e9e7
+  * fixed OCEL deepcopy
+* 5fd45bdf5d3cf17f364669cba7a5fab549236e7a
+  * major fix WOFLAN
+
+### Removed
+
+### Other
+
+
+---
+
+## pm4py 2.7.1 (2023.03.28)
+
+### Added
+* af4f00bca1ec7a3b0acc0421efe4bf895b324995
+  * insertion graph-based O2O relationships in the OCEL
+* 0bb0bad37311fd45113440d97f53a5c8255ce89c
+  * insertion lifecycle-based E2O relations in the OCEL
+* e6076a50216de31fdbd4dd00edd631a01c9e1bb7
+  * another algorithm to split/sample OCELs (ancestors/descendants based)
+* 564e2c0ec976291c283fc1b24c5ebc2b6e452f12
+  * algorithm for textual representation of OCEL
+* 3e5164b72835aaa29051f4fd6ce4329253a17f95
+  * algorithm to cluster OCEL based on the lifecycle/interactions similarity
+* 70131091d88e5e8f2627b4ff7f70f8d479bd7738
+  * new GPT-4 queries
+* f584641df13504f71c796752da1befc963f3ce3b
+  * included some simplified single-SQL-query extractors
+
+### Changed
+* 70198faa1b674c3a4e4351ff251a9af504e16a4e
+  * changing alignments interfacing in the simplified interface
+
+### Deprecated
+
+### Fixed
+* 8f5d5057f24bce7c3825e3f6d34b15e15bc15025
+  * wrong condition in the visualization of the alignments table
+
+### Removed
+
+### Other
+
+
+---
+
+## pm4py 2.7.0 (2023.03.23) -- Million Edition --
+
+### Added
+* ba126d3f4211cb237dae4b09dec5574224666237
+  * initial OpenAI integration
+* 05b6425637768312bf4768a252ee410c3bd5a35c
+  * easy-to-use (local computer) log extractors for Outlook, Windows events registry, Mozilla Firefox and Google Chrome
+
+### Changed
+* b3c17fe017bd57889845f398e08fa95d94a8c800
+  * add flow id to silent transitions in BPMN Petri net conversion
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Other
+
+---
+
+## pm4py 2.6.1 (2023.03.14)
+
+### Added
+* c9eac43f4b55883056a3540857b470ac18cc922e
+  * extract_ocel_features method in the simplified interface
+* d2744bf87b0ce80ddc8d42a5b935424c36ffb82f
+  * possibility to conisder additional event attributes in the convert_log_to_ocel method
+
+### Changed
+* 84e85c6e4715fe58159f6cfb83248d1cfa28bc8e
+  * possibility to return additional information during the conversion of BPMN to Petri net
+
+### Deprecated
+
+### Fixed
+* e1b126c5adca8d5767375a6737a9d9378a9093c6
+  * bug fix object-centric Petri nets discovery
+
+### Removed
+
+### Other
+
+---
+
+## pm4py 2.6.0 (2023.03.13)
+
+### Added
+* 73254a80b3430140fac2ff023a6e356edc48dd0f
+  * ILP miner (process discovery in ILP)
+* 7016026a2a514d529fe5cf9a49b4aa607d30183c
+  * "timestamp grouping filter" and "consecutive activities"
+    filters for Pandas dataframes
+* 4ba2a9e873c972c96fed8f3912f0dbaa8dfc96a1
+  * added pm4py.insert_case_arrival_finish_rate,
+    pm4py.insert_case_service_waiting_time,
+    pm4py.extract_outcome_enriched_dataframe
+    methods to the simplified interface (Pandas dataframes)
+* 18b250e38bcfeb08cda549df94de98ce5c5b484e
+  * added baseline log clustering based on profiles
+    (Song, Minseok, Christian W. Günther, and Wil MP Van der Aalst.
+    "Trace clustering in process mining."
+    Business Process Management Workshops: BPM 2008. )
+* 690716015f2452702b8f045e35e2029659bbd226
+  * log to target vectors (for ML purposes): next_activity, next_time, remaining_time
+
+### Changed
+* d6d2301dd0d2ea57cba76015eba124f726f4544e
+  * introduced optional "lifecycle paths" feature
+    in OCEL feature extraction
+
+### Deprecated
+
+### Fixed
+* 0a1c6f9c6e0ff45a0e732978589ed17513899be8
+  * fixed dependency on Simpy in __init__.py
+
+### Removed
+
+### Other
+* a313db141148a960d7eb5126831bc1f8829a2ca4
+  * made fundamental and optional requirements clearer
+
+---
+
+## pm4py 2.5.3 (2023.03.05)
+
+### Added
+
+### Changed
+* ea0da47ff6faaddb087ffa2344c6139c30978dca
+  * SVG position parser utility (replacing text-based parsing in Graphviz BPMN-based layout)
+* 9ea35fe209982f87f478262e1398e8474b3be1ba
+  * working variant for generator of all optimal alignments
+* 3f07223236eb350a72db87c8a708dcea13c1a5a3
+  * refactored df_statistics.get_dfg_graph method and DFG visualization
+* 268311a99ee7d2df245026371ab7449538ffcff8
+  * support for object versioning in OCEL
+
+### Deprecated
+
+### Fixed
+* 5d4bbb60bf940f8c5d654de0c8ecaec8cbb44d48
+  * fixes for Pandas 2.0
+* ea09b4910874dbb165277a4de93286c05ac0ba5c
+  * carefully performing SQLite3 import (DLL compatibility issues with Anaconda)
+* 06217786793dc7fa22706ecc143778d8ebbe3d2e
+  * fixed indeterminism in edges filtering during paths percentage filter
+
+### Removed
+
+### Other
+
+
+---
+
 ## pm4py 2.5.2 (2023.02.11)
 
 ### Added

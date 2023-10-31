@@ -19,6 +19,7 @@ from enum import Enum
 from pm4py.objects.ocel import constants
 from pm4py.util import exec_utils
 import pandas as pd
+import numpy as np
 from copy import copy, deepcopy
 
 
@@ -29,10 +30,11 @@ class Parameters(Enum):
     OBJECT_ID = constants.PARAM_OBJECT_ID
     OBJECT_TYPE = constants.PARAM_OBJECT_TYPE
     QUALIFIER = constants.PARAM_QUALIFIER
+    CHANGED_FIELD = constants.PARAM_CHNGD_FIELD
 
 
 class OCEL(object):
-    def __init__(self, events=None, objects=None, relations=None, globals=None, parameters=None, o2o=None, e2e=None):
+    def __init__(self, events=None, objects=None, relations=None, globals=None, parameters=None, o2o=None, e2e=None, object_changes=None):
         if parameters is None:
             parameters = {}
 
@@ -47,6 +49,7 @@ class OCEL(object):
         self.event_timestamp = exec_utils.get_param_value(Parameters.EVENT_TIMESTAMP, parameters,
                                                           constants.DEFAULT_EVENT_TIMESTAMP)
         self.qualifier = exec_utils.get_param_value(Parameters.QUALIFIER, parameters, constants.DEFAULT_QUALIFIER)
+        self.changed_field = exec_utils.get_param_value(Parameters.CHANGED_FIELD, parameters, constants.DEFAULT_CHNGD_FIELD)
 
         if events is None:
             events = pd.DataFrame({self.event_id_column: [], self.event_activity: [], self.event_timestamp: []})
@@ -62,6 +65,8 @@ class OCEL(object):
             o2o = pd.DataFrame({self.object_id_column: [], self.object_id_column+"_2": [], self.qualifier: []})
         if e2e is None:
             e2e = pd.DataFrame({self.event_id_column: [], self.event_id_column+"_2": [], self.qualifier: []})
+        if object_changes is None:
+            object_changes = pd.DataFrame({self.object_id_column: [], self.object_type_column: [], self.event_timestamp: [], self.changed_field: []})
         if self.qualifier not in relations:
             relations[self.qualifier] = [None] * len(relations)
 
@@ -71,6 +76,7 @@ class OCEL(object):
         self.globals = globals
         self.o2o = o2o
         self.e2e = e2e
+        self.object_changes = object_changes
 
         self.parameters = parameters
 
@@ -109,6 +115,22 @@ class OCEL(object):
             "Please use <THIS>.get_extended_table() to get a dataframe representation of the events related to the objects.")
         return "".join(ret)
 
+    def is_ocel20(self):
+        unique_qualifiers = []
+        if self.qualifier in self.relations.columns:
+            unique_qualifiers = [x for x in self.relations[self.qualifier].unique() if not self.__check_is_nan(x)]
+
+        return len(self.o2o) > 0 or len(self.object_changes) > 0 or len(unique_qualifiers) > 0
+
+    def __check_is_nan(self, x):
+        try:
+            if x is None:
+                return True
+            if np.isnan(x):
+                return True
+        except:
+            return False
+
     def __str__(self):
         return str(self.get_summary())
 
@@ -116,8 +138,8 @@ class OCEL(object):
         return str(self.get_summary())
 
     def __copy__(self):
-        return OCEL(self.events, self.objects, self.relations, copy(self.globals), copy(self.parameters), copy(self.o2o), copy(self.e2e))
+        return OCEL(self.events, self.objects, self.relations, copy(self.globals), copy(self.parameters), copy(self.o2o), copy(self.e2e), copy(self.object_changes))
 
     def __deepcopy__(self, memo):
         return OCEL(self.events.copy(), self.objects.copy(), self.relations.copy(), deepcopy(self.globals),
-                    deepcopy(self.parameters), deepcopy(self.o2o), deepcopy(self.e2e))
+                    deepcopy(self.parameters), deepcopy(self.o2o), deepcopy(self.e2e), deepcopy(self.object_changes))

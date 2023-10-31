@@ -21,7 +21,6 @@ import pandas as pd
 
 from pm4py.statistics.traces.generic.common import case_duration as case_duration_commons
 from pm4py.util import exec_utils, constants, pandas_utils
-from pm4py.util import variants_util
 from pm4py.util import xes_constants as xes
 from pm4py.util.business_hours import soj_time_business_hours_diff
 from pm4py.util.constants import CASE_CONCEPT_NAME
@@ -180,7 +179,7 @@ def get_cases_description(df: pd.DataFrame, parameters: Optional[Dict[Union[str,
             lambda x: soj_time_business_hours_diff(x[start_timestamp_key], x[timestamp_key + "_2"], business_hours_slots, workcalendar), axis=1)
     else:
         stacked_df['caseDuration'] = stacked_df[timestamp_key + "_2"] - stacked_df[start_timestamp_key]
-        stacked_df['caseDuration'] = stacked_df['caseDuration'].astype('timedelta64[s]')
+        stacked_df['caseDuration'] = stacked_df['caseDuration'].dt.total_seconds()
 
     stacked_df[timestamp_key + "_2"] = stacked_df[timestamp_key + "_2"].astype('int64') // 10 ** 9
     stacked_df[start_timestamp_key] = stacked_df[start_timestamp_key].astype('int64') // 10 ** 9
@@ -273,13 +272,13 @@ def get_variants_df_with_case_duration(df, parameters=None):
     del stacked_df[case_id_glue]
     del stacked_df[case_id_glue + "_2"]
     stacked_df['caseDuration'] = stacked_df[timestamp_key + "_2"] - stacked_df[timestamp_key]
-    stacked_df['caseDuration'] = stacked_df['caseDuration'].astype('timedelta64[s]')
+    stacked_df['caseDuration'] = stacked_df['caseDuration'].dt.total_seconds()
     if business_hours:
         stacked_df['caseDuration'] = stacked_df.apply(
             lambda x: soj_time_business_hours_diff(x[timestamp_key], x[timestamp_key + "_2"], business_hours_slots, workcalendar), axis=1)
     else:
         stacked_df['caseDuration'] = stacked_df[timestamp_key + "_2"] - stacked_df[timestamp_key]
-        stacked_df['caseDuration'] = stacked_df['caseDuration'].astype('timedelta64[s]')
+        stacked_df['caseDuration'] = stacked_df['caseDuration'].dt.total_seconds()
     new_df = pd.concat([df1, stacked_df], axis=1)
     del df1
     del stacked_df

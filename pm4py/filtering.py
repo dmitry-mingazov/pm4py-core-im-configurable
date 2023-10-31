@@ -18,14 +18,13 @@ __doc__ = """
 The ``pm4py.filtering`` module contains the filtering features offered in ``pm4py``
 """
 
-import warnings
-from typing import List, Union, Set, List, Tuple, Collection, Any, Dict, Optional
+from typing import Union, Set, List, Tuple, Collection, Any, Dict, Optional
 
 import pandas as pd
 
-from pm4py.meta import VERSION as PM4PY_CURRENT_VERSION
 from pm4py.objects.log.obj import EventLog, EventStream
 from pm4py.util import constants, xes_constants
+import warnings
 from pm4py.util.pandas_utils import check_is_pandas_dataframe, check_pandas_dataframe_columns
 from pm4py.utils import get_properties, __event_log_deprecation_warning
 from pm4py.objects.ocel.obj import OCEL
@@ -390,7 +389,8 @@ def filter_time_range(log: Union[EventLog, pd.DataFrame], dt1: str, dt2: str, mo
         elif mode == "traces_intersecting":
             return timestamp_filter.filter_traces_intersecting(log, dt1, dt2, parameters=properties)
         else:
-            warnings.warn('mode provided: ' + mode + ' is not recognized; original log returned!')
+            if constants.SHOW_INTERNAL_WARNINGS:
+                warnings.warn('mode provided: ' + mode + ' is not recognized; original log returned!')
             return log
     else:
         from pm4py.algo.filtering.log.timestamp import timestamp_filter
@@ -401,7 +401,8 @@ def filter_time_range(log: Union[EventLog, pd.DataFrame], dt1: str, dt2: str, mo
         elif mode == "traces_intersecting":
             return timestamp_filter.filter_traces_intersecting(log, dt1, dt2, parameters=properties)
         else:
-            warnings.warn('mode provided: ' + mode + ' is not recognized; original log returned!')
+            if constants.SHOW_INTERNAL_WARNINGS:
+                warnings.warn('mode provided: ' + mode + ' is not recognized; original log returned!')
             return log
 
 
@@ -1093,14 +1094,16 @@ def filter_ocel_events(ocel: OCEL, event_identifiers: Collection[str], positive:
     return filtering_utils.propagate_event_filtering(filtered_ocel)
 
 
-def filter_ocel_cc_object(ocel: OCEL, object_id: str) -> OCEL:
+def filter_ocel_cc_object(ocel: OCEL, object_id: str, conn_comp: Optional[List[List[str]]] = None, return_conn_comp: bool = False) -> Union[OCEL, Tuple[OCEL, List[List[str]]]]:
     """
     Returns the connected component of the object-centric event log
     to which the object with the provided identifier belongs.
 
     :param ocel: object-centric event log
     :param object_id: object identifier
-    :rtype: ``OCEL``
+    :param conn_comp: (optional) connected components of the objects of the OCEL
+    :param return_conn_comp: if True, returns the computed connected components of the OCEL
+    :rtype: ``Union[OCEL, Tuple[OCEL, List[List[str]]]]``
 
     .. code-block:: python3
 
@@ -1109,8 +1112,143 @@ def filter_ocel_cc_object(ocel: OCEL, object_id: str) -> OCEL:
         ocel = pm4py.read_ocel('log.jsonocel')
         filtered_ocel = pm4py.filter_ocel_cc_object(ocel, 'order1')
     """
-    from pm4py.algo.transformation.ocel.split_ocel import algorithm
-    ocel_splits = algorithm.apply(ocel)
-    for cc in ocel_splits:
-        if object_id in cc.objects[ocel.object_id_column].unique():
-            return cc
+    if conn_comp is None:
+        from pm4py.algo.transformation.ocel.graphs import object_interaction_graph
+        import networkx as nx
+
+        g0 = object_interaction_graph.apply(ocel)
+        g = nx.Graph()
+
+        for edge in g0:
+            g.add_edge(edge[0], edge[1])
+
+        conn_comp = list(nx.connected_components(g))
+
+    for cc in conn_comp:
+        if object_id in cc:
+            if return_conn_comp:
+                return filter_ocel_objects(ocel, cc), conn_comp
+            else:
+                return filter_ocel_objects(ocel, cc)
+
+    if return_conn_comp:
+        return filter_ocel_objects(ocel, [object_id]), conn_comp
+    else:
+        return filter_ocel_objects(ocel, [object_id])
+
+
+def filter_ocel_cc_length(ocel: OCEL, min_cc_length: int, max_cc_length: int) -> OCEL:
+    """
+    Keeps only the objects in an OCEL belonging to a connected component with a length
+    falling in a specified range
+
+    Paper:
+    Adams, Jan Niklas, et al. "Defining cases and variants for object-centric event data." 2022 4th International Conference on Process Mining (ICPM). IEEE, 2022.
+
+    :param ocel: object-centric event log
+    :param min_cc_length: minimum allowed length for the connected component
+    :param max_cc_length: maximum allowed length for the connected component
+    :rtype: ``OCEL``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('log.jsonocel')
+        filtered_ocel = pm4py.filter_ocel_cc_length(ocel, 2, 10)
+    """
+    from pm4py.algo.transformation.ocel.graphs import object_interaction_graph
+    import networkx as nx
+
+    g0 = object_interaction_graph.apply(ocel)
+    g = nx.Graph()
+
+    for edge in g0:
+        g.add_edge(edge[0], edge[1])
+
+    conn_comp = list(nx.connected_components(g))
+    conn_comp = [x for x in conn_comp if min_cc_length <= len(x) <= max_cc_length]
+    objs = [y for x in conn_comp for y in x]
+
+    return filter_ocel_objects(ocel, objs)
+
+
+def filter_ocel_cc_otype(ocel: OCEL, otype: str, positive: bool = True) -> OCEL:
+    """
+    Filters the objects belonging to the connected components having at least an object
+    of the provided object type.
+
+    Paper:
+    Adams, Jan Niklas, et al. "Defining cases and variants for object-centric event data." 2022 4th International Conference on Process Mining (ICPM). IEEE, 2022.
+
+    :param ocel: object-centric event log
+    :param otype: object type
+    :param positive: boolean that keeps or discards the objects of these components
+    :rtype: ``OCEL``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('log.jsonocel')
+        filtered_ocel = pm4py.filter_ocel_cc_otype(ocel, 'order')
+    """
+    if positive:
+        objs = set(ocel.objects[ocel.objects[ocel.object_type_column] == otype][ocel.object_id_column])
+    else:
+        objs = set(ocel.objects[~(ocel.objects[ocel.object_type_column] == otype)][ocel.object_id_column])
+
+    from pm4py.algo.transformation.ocel.graphs import object_interaction_graph
+    import networkx as nx
+
+    g0 = object_interaction_graph.apply(ocel)
+    g = nx.Graph()
+
+    for edge in g0:
+        g.add_edge(edge[0], edge[1])
+
+    conn_comp = list(nx.connected_components(g))
+    conn_comp = [x for x in conn_comp if len(set(x).intersection(objs)) > 0]
+
+    objs = [y for x in conn_comp for y in x]
+
+    return filter_ocel_objects(ocel, objs)
+
+
+def filter_ocel_cc_activity(ocel: OCEL, activity: str) -> OCEL:
+    """
+    Filters the objects belonging to the connected components having at least an event
+    with the provided activity.
+
+    Paper:
+    Adams, Jan Niklas, et al. "Defining cases and variants for object-centric event data." 2022 4th International Conference on Process Mining (ICPM). IEEE, 2022.
+
+    :param ocel: object-centric event log
+    :param activity: activity
+    :rtype: ``OCEL``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        ocel = pm4py.read_ocel('log.jsonocel')
+        filtered_ocel = pm4py.filter_ocel_cc_activity(ocel, 'Create Order')
+    """
+    evs = set(ocel.events[ocel.events[ocel.event_activity] == activity][ocel.event_id_column])
+    objs = set(ocel.relations[ocel.relations[ocel.event_id_column].isin(evs)][ocel.object_id_column].unique())
+
+    from pm4py.algo.transformation.ocel.graphs import object_interaction_graph
+    import networkx as nx
+
+    g0 = object_interaction_graph.apply(ocel)
+    g = nx.Graph()
+
+    for edge in g0:
+        g.add_edge(edge[0], edge[1])
+
+    conn_comp = list(nx.connected_components(g))
+    conn_comp = [x for x in conn_comp if len(set(x).intersection(objs)) > 0]
+
+    objs = [y for x in conn_comp for y in x]
+
+    return filter_ocel_objects(ocel, objs)

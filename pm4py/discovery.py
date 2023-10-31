@@ -18,8 +18,7 @@ __doc__ = """
 The ``pm4py.discovery`` module contains the process discovery algorithms implemented in ``pm4py``
 """
 
-import warnings
-from typing import Tuple, Union, List, Dict, Any, Optional
+from typing import Tuple, Union, List, Dict, Any, Optional, Set
 
 import pandas as pd
 from pandas import DataFrame
@@ -34,10 +33,10 @@ from pm4py.objects.log.obj import EventStream
 from pm4py.objects.petri_net.obj import PetriNet, Marking
 from pm4py.objects.process_tree.obj import ProcessTree
 from pm4py.util.pandas_utils import check_is_pandas_dataframe, check_pandas_dataframe_columns
-from pm4py.utils import get_properties, xes_constants, __event_log_deprecation_warning
+from pm4py.utils import get_properties, __event_log_deprecation_warning
 from pm4py.util import constants
 import deprecation
-import pkgutil
+import importlib.util
 
 
 def discover_dfg(log: Union[EventLog, pd.DataFrame], activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Tuple[dict, dict, dict]:
@@ -131,7 +130,7 @@ def discover_dfg_typed(log: pd.DataFrame, case_id_key: str = "case:concept:name"
         log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
     if type(log) is pd.DataFrame:
         return clean.apply(log, parameters)
-    elif pkgutil.find_loader("polars"):
+    elif importlib.util.find_spec("polars"):
         import polars as pl
         if type(log) is pl.DataFrame:
             from pm4py.algo.discovery.dfg.variants import clean_polars
@@ -229,6 +228,39 @@ def discover_petri_net_alpha(log: Union[EventLog, pd.DataFrame], activity_key: s
     return alpha_miner.apply(log, variant=alpha_miner.Variants.ALPHA_VERSION_CLASSIC, parameters=get_properties(log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key))
 
 
+def discover_petri_net_ilp(log: Union[EventLog, pd.DataFrame], alpha: float = 1.0, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Tuple[PetriNet, Marking, Marking]:
+    """
+    Discovers a Petri net using the ILP Miner.
+
+    :param log: event log / Pandas dataframe
+    :param alpha: noise threshold for the sequence encoding graph (1.0=no filtering, 0.0=greatest filtering)
+    :param activity_key: attribute to be used for the activity
+    :param timestamp_key: attribute to be used for the timestamp
+    :param case_id_key: attribute to be used as case identifier
+    :rtype: ``Tuple[PetriNet, Marking, Marking]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        net, im, fm = pm4py.discover_petri_net_ilp(dataframe, activity_key='concept:name', case_id_key='case:concept:name', timestamp_key='time:timestamp')
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]:
+        raise Exception(
+            "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    if check_is_pandas_dataframe(log):
+        check_pandas_dataframe_columns(
+            log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+
+    parameters = get_properties(log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+    parameters["alpha"] = alpha
+
+    from pm4py.algo.discovery.ilp import algorithm as ilp_miner
+    return ilp_miner.apply(log, variant=ilp_miner.Variants.CLASSIC, parameters=parameters)
+
+
 @deprecation.deprecated(deprecated_in="2.3.0", removed_in="3.0.0", details="this method will be removed in a future release.")
 def discover_petri_net_alpha_plus(log: Union[EventLog, pd.DataFrame], activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Tuple[PetriNet, Marking, Marking]:
     """
@@ -259,7 +291,7 @@ def discover_petri_net_alpha_plus(log: Union[EventLog, pd.DataFrame], activity_k
     return alpha_miner.apply(log, variant=alpha_miner.Variants.ALPHA_VERSION_PLUS, parameters=get_properties(log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key))
 
 
-def discover_petri_net_inductive(log: Union[EventLog, pd.DataFrame, DFG], multi_processing: bool = False, noise_threshold: float = 0.0, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Tuple[
+def discover_petri_net_inductive(log: Union[EventLog, pd.DataFrame, DFG], multi_processing: bool = constants.ENABLE_MULTIPROCESSING_DEFAULT, noise_threshold: float = 0.0, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name", disable_fallthroughs: bool = False) -> Tuple[
         PetriNet, Marking, Marking]:
     """
     Discovers a Petri net using the inductive miner algorithm.
@@ -274,6 +306,7 @@ def discover_petri_net_inductive(log: Union[EventLog, pd.DataFrame, DFG], multi_
     :param activity_key: attribute to be used for the activity
     :param timestamp_key: attribute to be used for the timestamp
     :param case_id_key: attribute to be used as case identifier
+    :param disable_fallthroughs: disable the Inductive Miner fall-throughs
     :rtype: ``Tuple[PetriNet, Marking, Marking]``
 
     .. code-block:: python3
@@ -292,7 +325,7 @@ def discover_petri_net_inductive(log: Union[EventLog, pd.DataFrame, DFG], multi_
             log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
 
     pt = discover_process_tree_inductive(
-        log, noise_threshold, multi_processing=multi_processing, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+        log, noise_threshold, multi_processing=multi_processing, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key, disable_fallthroughs=disable_fallthroughs)
     from pm4py.convert import convert_to_petri_net
     return convert_to_petri_net(pt)
 
@@ -341,7 +374,7 @@ def discover_petri_net_heuristics(log: Union[EventLog, pd.DataFrame], dependency
         return heuristics_miner.apply(log, parameters=parameters)
 
 
-def discover_process_tree_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_threshold: float = 0.0, multi_processing: bool = constants.ENABLE_MULTIPROCESSING_DEFAULT, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> ProcessTree:
+def discover_process_tree_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_threshold: float = 0.0, multi_processing: bool = constants.ENABLE_MULTIPROCESSING_DEFAULT, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name", disable_fallthroughs: bool = False) -> ProcessTree:
     """
     Discovers a process tree using the inductive miner algorithm
 
@@ -355,6 +388,7 @@ def discover_process_tree_inductive(log: Union[EventLog, pd.DataFrame, DFG], noi
     :param multi_processing: boolean that enables/disables multiprocessing in inductive miner
     :param timestamp_key: attribute to be used for the timestamp
     :param case_id_key: attribute to be used as case identifier
+    :param disable_fallthroughs: disable the Inductive Miner fall-throughs
     :rtype: ``ProcessTree``
 
     .. code-block:: python3
@@ -377,6 +411,7 @@ def discover_process_tree_inductive(log: Union[EventLog, pd.DataFrame, DFG], noi
         log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
     parameters["noise_threshold"] = noise_threshold
     parameters["multiprocessing"] = multi_processing
+    parameters["disable_fallthroughs"] = disable_fallthroughs
 
     variant = inductive_miner.Variants.IMf if noise_threshold > 0 else inductive_miner.Variants.IM
 
@@ -523,7 +558,7 @@ def discover_eventually_follows_graph(log: Union[EventLog, pd.DataFrame], activi
         return get.apply(log, parameters=properties)
 
 
-def discover_bpmn_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_threshold: float = 0.0, multi_processing: bool = constants.ENABLE_MULTIPROCESSING_DEFAULT, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> BPMN:
+def discover_bpmn_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_threshold: float = 0.0, multi_processing: bool = constants.ENABLE_MULTIPROCESSING_DEFAULT, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name", disable_fallthroughs: bool = False) -> BPMN:
     """
     Discovers a BPMN using the Inductive Miner algorithm
 
@@ -537,6 +572,7 @@ def discover_bpmn_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_thres
     :param activity_key: attribute to be used for the activity
     :param timestamp_key: attribute to be used for the timestamp
     :param case_id_key: attribute to be used as case identifier
+    :param disable_fallthroughs: disable the Inductive Miner fall-throughs
     :rtype: ``BPMN``
 
     .. code-block:: python3
@@ -555,7 +591,7 @@ def discover_bpmn_inductive(log: Union[EventLog, pd.DataFrame, DFG], noise_thres
             log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
 
     pt = discover_process_tree_inductive(
-        log, noise_threshold, multi_processing=multi_processing, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+        log, noise_threshold, multi_processing=multi_processing, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key, disable_fallthroughs=disable_fallthroughs)
     from pm4py.convert import convert_to_bpmn
     return convert_to_bpmn(pt)
 
@@ -729,6 +765,49 @@ def discover_log_skeleton(log: Union[EventLog, pd.DataFrame], noise_threshold: f
 
     from pm4py.algo.discovery.log_skeleton import algorithm as log_skeleton_discovery
     return log_skeleton_discovery.apply(log, parameters=properties)
+
+
+def discover_declare(log: Union[EventLog, pd.DataFrame], allowed_templates: Optional[Set[str]] = None, considered_activities: Optional[Set[str]] = None, min_support_ratio: Optional[float] = None, min_confidence_ratio: Optional[float] = None, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> Dict[str, Dict[Any, Dict[str, int]]]:
+    """
+    Discovers a DECLARE model from an event log.
+
+    Reference paper:
+    F. M. Maggi, A. J. Mooij and W. M. P. van der Aalst, "User-guided discovery of declarative process models," 2011 IEEE Symposium on Computational Intelligence and Data Mining (CIDM), Paris, France, 2011, pp. 192-199, doi: 10.1109/CIDM.2011.5949297.
+
+    :param log: event log / Pandas dataframe
+    :param allowed_templates: (optional) collection of templates to consider for the discovery
+    :param considered_activities: (optional) collection of activities to consider for the discovery
+    :param min_support_ratio: (optional, decided automatically otherwise) minimum percentage of cases (over the entire set of cases of the log) for which the discovered rules apply
+    :param min_confidence_ratio: (optional, decided automatically otherwise) minimum percentage of cases (over the rule's support) for which the discovered rules are valid
+    :param activity_key: attribute to be used for the activity
+    :param timestamp_key: attribute to be used for the timestamp
+    :param case_id_key: attribute to be used as case identifier
+    :rtype: ``Dict[str, Any]``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        declare_model = pm4py.discover_declare(log)
+    """
+    if type(log) not in [pd.DataFrame, EventLog, EventStream]:
+        raise Exception(
+            "the method can be applied only to a traditional event log!")
+    __event_log_deprecation_warning(log)
+
+    if check_is_pandas_dataframe(log):
+        check_pandas_dataframe_columns(
+            log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+
+    properties = get_properties(
+        log, activity_key=activity_key, timestamp_key=timestamp_key, case_id_key=case_id_key)
+    properties["allowed_templates"] = allowed_templates
+    properties["considered_activities"] = considered_activities
+    properties["min_support_ratio"] = min_support_ratio
+    properties["min_confidence_ratio"] = min_confidence_ratio
+
+    from pm4py.algo.discovery.declare import algorithm as declare_discovery
+    return declare_discovery.apply(log, parameters=properties)
 
 
 def discover_batches(log: Union[EventLog, pd.DataFrame], merge_distance: int = 15 * 60, min_batch_size: int = 2, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name", resource_key: str = "org:resource") -> List[

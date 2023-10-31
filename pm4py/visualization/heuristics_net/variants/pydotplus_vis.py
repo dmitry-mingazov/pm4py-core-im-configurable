@@ -24,12 +24,13 @@ from pm4py.util import exec_utils, constants
 from pm4py.visualization.common.utils import human_readable_stat
 from enum import Enum
 from pm4py.objects.heuristics_net.obj import HeuristicsNet
-from typing import Optional, Dict, Any, Union, Tuple
+from typing import Optional, Dict, Any, Union
 from uuid import uuid4
 
 
 class Parameters(Enum):
     FORMAT = "format"
+    BGCOLOR = "bgcolor"
 
 
 def get_corr_hex(num):
@@ -137,8 +138,10 @@ def get_graph(heu_net: HeuristicsNet, parameters: Optional[Dict[Union[str, Param
     if parameters is None:
         parameters = {}
 
+    bgcolor = exec_utils.get_param_value(Parameters.BGCOLOR, parameters, constants.DEFAULT_BGCOLOR)
     graph = pydotplus.Dot(strict=True)
-    graph.obj_dict['attributes']['bgcolor'] = constants.DEFAULT_BGCOLOR
+    graph.obj_dict['attributes']['bgcolor'] = bgcolor
+    graph.set_bgcolor(bgcolor)
 
     corr_nodes = {}
     corr_nodes_names = {}

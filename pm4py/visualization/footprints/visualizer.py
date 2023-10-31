@@ -21,7 +21,7 @@ from pm4py.visualization.common import gview
 from pm4py.visualization.common import save as gsave
 from pm4py.visualization.common.gview import serialize, serialize_dot
 import graphviz
-from typing import Optional, Dict, Any, Union, Tuple
+from typing import Optional, Dict, Any
 
 
 class Variants(Enum):
@@ -66,7 +66,7 @@ def apply(*args, variant=None, parameters: Optional[Dict[Any, Any]] = None) -> g
         return exec_utils.get_variant(variant).apply(args[0], args[1], parameters=parameters)
 
 
-def save(gviz, output_file_path):
+def save(gviz, output_file_path, parameters=None):
     """
     Save the diagram
 
@@ -77,10 +77,10 @@ def save(gviz, output_file_path):
     output_file_path
         Path where the GraphViz output should be saved
     """
-    gsave.save(gviz, output_file_path)
+    gsave.save(gviz, output_file_path, parameters=parameters)
 
 
-def view(gviz):
+def view(gviz, parameters=None):
     """
     View the diagram
 
@@ -89,10 +89,10 @@ def view(gviz):
     gviz
         GraphViz diagram
     """
-    return gview.view(gviz)
+    return gview.view(gviz, parameters=parameters)
 
 
-def matplotlib_view(gviz):
+def matplotlib_view(gviz, parameters=None):
     """
     Views the diagram using Matplotlib
 
@@ -102,4 +102,4 @@ def matplotlib_view(gviz):
         Graphviz
     """
 
-    return gview.matplotlib_view(gviz)
+    return gview.matplotlib_view(gviz, parameters=parameters)
